@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+*.log
+coverage/
+conn.json
+dev-mysql.json
+/uploads/
