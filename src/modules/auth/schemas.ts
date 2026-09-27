@@ -8,11 +8,15 @@ export const LoginBody = z.object({
 });
 
 export const RefreshBody = z.object({
-  refresh_token: z.string().min(10),
+  // Nullish (not just optional): a web client sends it via the httpOnly
+  // `refresh_token` cookie instead (see routes.ts), and the Dart caller's
+  // `String?` sometimes serializes as an explicit JSON `null` rather than an
+  // absent key — `.optional()` alone rejects `null`, only `.nullish()` doesn't.
+  refresh_token: z.string().min(10).nullish(),
 });
 
 export const LogoutBody = z.object({
-  refresh_token: z.string().min(10).optional(),
+  refresh_token: z.string().min(10).nullish(),
 });
 
 export const ChangePasswordBody = z.object({

@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import Fastify from 'fastify';
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -52,11 +53,23 @@ export async function buildApp() {
     }
   });
 
+  // `credentials: true` + a wildcard origin lets ANY website make
+  // credentialed requests (cookies, once the web build moves refresh tokens
+  // to an httpOnly cookie per docs/backend-migration/PLAN.md §4.4) — fine for
+  // local dev across ports, a real CSRF/session-theft hole in production.
+  // Fail fast instead of silently running wide open.
+  if (config.NODE_ENV === 'production' && config.corsOrigins.length === 0) {
+    throw new Error('CORS_ORIGINS must be set to a comma-separated allowlist in production.');
+  }
   await app.register(helmet, { global: true });
   await app.register(cors, {
     origin: config.corsOrigins.length ? config.corsOrigins : true,
     credentials: true,
   });
+  // Web-only refresh-token cookie (see modules/auth/routes.ts) — unsigned,
+  // since the cookie value is already an unguessable random token; the cookie
+  // just needs httpOnly + Secure, not a second layer of signing.
+  await app.register(cookie);
   await app.register(rateLimit, {
     global: true,
     max: 300,
